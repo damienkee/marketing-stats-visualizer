@@ -1,0 +1,10 @@
+Number Of Tickets,Date Booked (UTC+10),Time Booked,Booking Data: How Did You Find Out About Our Show?,Booking Data: Sub 1: Please Specify,Booking Data: What Is Your Postcode,Ticket Type
+1,2026-05-01,19:00:00,Facebook,,4000,Adult
+1,2026-05-01,19:00:00,Facebook,,4000,Child
+2,2026-05-02,19:00:00,Instagram,,4001,Adult
+1,2026-05-03,14:00:00,Poster,,4002,Family
+1,2026-05-03,14:00:00,Poster,,4002,Child
+1,2026-05-03,14:00:00,Poster,,4002,Adult
+1,2026-05-04,19:00:00,Friend recommendation,,4003,Adult
+1,2026-05-05,19:00:00,Other,saw your van,4004,Adult
+1,2026-05-05,19:00:00,Other,saw your van,4004,Adult
