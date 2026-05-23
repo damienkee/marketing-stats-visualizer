@@ -13,6 +13,7 @@ class ColumnConfig:
     other_specify_col: str | None = None
     number_of_tickets_col: str | None = None
     ticket_type_col: str | None = None
+    postcode_col: str | None = None
 
 
 def normalize_source(value: object, other_specify: object | None) -> str:
@@ -37,6 +38,21 @@ def normalize_source(value: object, other_specify: object | None) -> str:
     return text
 
 
+def normalize_sources(value: object, other_specify: object | None) -> list[str]:
+    text = str(value).strip()
+    parts = [part.strip() for part in text.split(";") if part.strip()]
+
+    if not parts:
+        return [normalize_source(value, other_specify)]
+
+    normalized: list[str] = []
+    for part in parts:
+        use_other_specify = other_specify if part.lower().startswith("other") else None
+        normalized.append(normalize_source(part, use_other_specify))
+
+    return normalized
+
+
 def _coerce_ticket_count(value: object) -> int:
     if value is None:
         return 1
@@ -51,6 +67,18 @@ def _coerce_ticket_count(value: object) -> int:
         return 1
 
     return max(count, 1)
+
+
+def normalize_ticket_type(value: object) -> str:
+    text = str(value).strip()
+    if not text or text.lower() in {"nan", "none"}:
+        return "Unknown"
+
+    normalized_key = "".join(ch for ch in text.lower() if ch.isalnum())
+    if normalized_key in {"groupboxoffice", "group10"}:
+        return "Group"
+
+    return text
 
 
 def prepare_data(df: pd.DataFrame, columns: ColumnConfig) -> pd.DataFrame:
@@ -73,11 +101,13 @@ def prepare_data(df: pd.DataFrame, columns: ColumnConfig) -> pd.DataFrame:
 
     if columns.other_specify_col and columns.other_specify_col in working.columns:
         working["source"] = working.apply(
-            lambda row: normalize_source(row["source"], row[columns.other_specify_col]),
+            lambda row: normalize_sources(row["source"], row[columns.other_specify_col]),
             axis=1,
         )
     else:
-        working["source"] = working["source"].map(lambda value: normalize_source(value, None))
+        working["source"] = working["source"].map(lambda value: normalize_sources(value, None))
+
+    working = working.explode("source", ignore_index=True)
 
     if columns.number_of_tickets_col and columns.number_of_tickets_col in working.columns:
         working["ticket_count"] = working[columns.number_of_tickets_col].map(_coerce_ticket_count)
@@ -89,8 +119,17 @@ def prepare_data(df: pd.DataFrame, columns: ColumnConfig) -> pd.DataFrame:
     else:
         working["ticket_type"] = "Unknown"
 
-    working["ticket_type"] = working["ticket_type"].fillna("Unknown").astype(str).str.strip()
-    working.loc[working["ticket_type"] == "", "ticket_type"] = "Unknown"
+    working["ticket_type"] = working["ticket_type"].map(normalize_ticket_type)
+
+    if columns.postcode_col and columns.postcode_col in working.columns:
+        working["postcode"] = (
+            working[columns.postcode_col]
+            .astype(str)
+            .str.strip()
+            .str.extract(r"(\d{4})", expand=False)
+        )
+    else:
+        working["postcode"] = None
 
     return working.sort_values("booking_datetime").reset_index(drop=True)
 
@@ -107,12 +146,8 @@ def get_source_series(
     data = prepared_df.copy()
 
     if mode == "bookings":
-        booking_level = (
-            data.groupby("booking_datetime", as_index=False)
-            .agg(source=("source", lambda s: s.value_counts().index[0]), value=("ticket_count", "size"))
-            .sort_values("booking_datetime")
-        )
-        data = booking_level
+        data = data.drop_duplicates(subset=["booking_datetime", "source"]).copy()
+        data["value"] = 1
     else:
         data["value"] = data["ticket_count"]
 
@@ -120,6 +155,17 @@ def get_source_series(
 
     series = data.groupby(["period", "source"], as_index=False)["value"].sum().sort_values("period")
 
+    return series
+
+
+def get_postcode_series(prepared_df: pd.DataFrame) -> pd.DataFrame:
+    data = prepared_df.dropna(subset=["postcode"]).copy()
+    data = data[data["postcode"] != ""]
+    series = (
+        data.groupby("postcode", as_index=False)["ticket_count"]
+        .sum()
+        .rename(columns={"ticket_count": "tickets"})
+    )
     return series
 
 
