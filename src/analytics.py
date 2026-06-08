@@ -14,6 +14,8 @@ class ColumnConfig:
     number_of_tickets_col: str | None = None
     ticket_type_col: str | None = None
     postcode_col: str | None = None
+    session_date_col: str | None = None
+    session_time_col: str | None = None
 
 
 def normalize_source(value: object, other_specify: object | None) -> str:
@@ -99,6 +101,22 @@ def prepare_data(df: pd.DataFrame, columns: ColumnConfig) -> pd.DataFrame:
     )
     working = working.dropna(subset=["booking_datetime"])
 
+    if (
+        columns.session_date_col
+        and columns.session_time_col
+        and columns.session_date_col in working.columns
+        and columns.session_time_col in working.columns
+    ):
+        session_date_part = working[columns.session_date_col].astype(str).str.strip()
+        session_time_part = working[columns.session_time_col].astype(str).str.strip()
+        working["session_datetime"] = pd.to_datetime(
+            session_date_part + " " + session_time_part,
+            errors="coerce",
+            dayfirst=True,
+        )
+    else:
+        working["session_datetime"] = pd.NaT
+
     if columns.other_specify_col and columns.other_specify_col in working.columns:
         working["source"] = working.apply(
             lambda row: normalize_sources(row["source"], row[columns.other_specify_col]),
@@ -132,6 +150,21 @@ def prepare_data(df: pd.DataFrame, columns: ColumnConfig) -> pd.DataFrame:
         working["postcode"] = None
 
     return working.sort_values("booking_datetime").reset_index(drop=True)
+
+
+def get_session_ticket_type_breakdown(prepared_df: pd.DataFrame) -> pd.DataFrame:
+    data = prepared_df.dropna(subset=["session_datetime"]).copy()
+    if data.empty:
+        return pd.DataFrame(columns=["session_datetime", "ticket_type", "value"])
+
+    series = (
+        data.groupby(["session_datetime", "ticket_type"], as_index=False)["ticket_count"]
+        .sum()
+        .rename(columns={"ticket_count": "value"})
+        .sort_values(["session_datetime", "ticket_type"])
+    )
+
+    return series
 
 
 def get_source_series(
