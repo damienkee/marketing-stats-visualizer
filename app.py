@@ -325,14 +325,33 @@ other_mask = source_series["source"].str.lower().str.startswith("other")
 non_other_series = source_series[~other_mask]
 other_series = source_series[other_mask]
 
-all_sources = sorted(non_other_series["source"].unique().tolist())
+bo_mask = other_series["source"].str.contains(
+    r"\bbo\b|season ticket|life member", case=False, regex=True, na=False
+)
+bo_series = other_series[bo_mask]
+rest_other_series = other_series[~bo_mask]
+
+bo_collapsed = bo_series.groupby("period", as_index=False)["value"].sum()
+bo_collapsed["source"] = "Box Office"
+other_collapsed = rest_other_series.groupby("period", as_index=False)["value"].sum()
+other_collapsed["source"] = "Other"
+chartable_series = pd.concat(
+    [
+        non_other_series,
+        bo_collapsed[["period", "source", "value"]],
+        other_collapsed[["period", "source", "value"]],
+    ],
+    ignore_index=True,
+)
+
+all_sources = sorted(chartable_series["source"].unique().tolist())
 selected_sources = checkbox_filter(
     all_sources,
     "source_filter",
     "Tick responses to include",
     default_unchecked={"Unknown"},
 )
-filtered_source = non_other_series[non_other_series["source"].isin(selected_sources)]
+filtered_source = chartable_series[chartable_series["source"].isin(selected_sources)]
 
 chart_type_source = st.radio(
     "Chart type",
@@ -343,7 +362,7 @@ chart_type_source = st.radio(
 )
 
 if filtered_source.empty:
-    st.info("No data points for selected non-'Other' responses.")
+    st.info("No data points for selected responses.")
 elif chart_type_source == "Stacked columns":
     fig_source = px.bar(
         filtered_source,

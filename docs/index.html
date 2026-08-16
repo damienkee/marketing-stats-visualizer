@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Marketing Statistics Visualizer</title>
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <h1>Marketing Statistics Visualizer</h1>
+    <p class="caption">Analyze booking trends and ticket demand from a local CSV file. Your file is parsed entirely in this browser tab and is never uploaded anywhere.</p>
+
+    <section class="control-group">
+      <h2>Data Source</h2>
+      <input type="file" id="csv-upload" accept=".csv" />
+      <p id="data-source-note" class="note"></p>
+    </section>
+
+    <section class="control-group">
+      <h2>Aggregation</h2>
+      <label class="checkbox-row">
+        <input type="checkbox" id="group-by-bookings" />
+        Group by bookings instead of tickets
+      </label>
+      <label class="field-label" for="time-group-select">Group time by</label>
+      <select id="time-group-select">
+        <option value="h">Hourly</option>
+        <option value="D" selected>Daily</option>
+        <option value="W">Weekly</option>
+        <option value="M">Monthly</option>
+      </select>
+    </section>
+
+    <section class="control-group">
+      <h2>Map</h2>
+      <label class="field-label" for="map-style-select">Map base style</label>
+      <select id="map-style-select">
+        <option value="open-street-map">open-street-map</option>
+        <option value="carto-positron" selected>carto-positron</option>
+        <option value="carto-darkmatter">carto-darkmatter</option>
+        <option value="white-bg">white-bg</option>
+      </select>
+    </section>
+  </aside>
+
+  <main class="content">
+    <section id="error-banner" class="error-banner" hidden></section>
+
+    <section class="chart-section">
+      <h2>Marketing Response Trend</h2>
+      <label class="checkbox-row">
+        <input type="checkbox" id="exclude-bo-marketing" />
+        Exclude box office (marketing response only)
+      </label>
+      <div id="trend-chart" class="chart-container"></div>
+      <div class="filter-block">
+        <p class="field-label">Tick responses to include</p>
+        <div id="source-filter" class="checkbox-grid"></div>
+      </div>
+      <div class="radio-row">
+        <span class="field-label">Chart type</span>
+        <label><input type="radio" name="chart-type" value="line" /> Line</label>
+        <label><input type="radio" name="chart-type" value="bar" checked /> Stacked columns</label>
+      </div>
+    </section>
+
+    <section class="chart-section">
+      <h2>Other Responses</h2>
+      <div id="other-table"></div>
+    </section>
+
+    <section class="chart-section">
+      <h2>Ticket Type Breakdown</h2>
+      <div class="filter-block">
+        <p class="field-label">Tick ticket types to include</p>
+        <div id="ticket-type-filter" class="checkbox-grid"></div>
+      </div>
+      <div id="ticket-pie" class="chart-container"></div>
+    </section>
+
+    <section class="chart-section">
+      <h2>Session Sales by Ticket Type</h2>
+      <div id="session-pies" class="chart-container"></div>
+      <div id="session-summary"></div>
+    </section>
+
+    <details class="expander">
+      <summary>Preview prepared data</summary>
+      <div id="preview-table" class="scroll-table"></div>
+    </details>
+
+    <section class="chart-section">
+      <h2>Postcode Hotspot Map</h2>
+      <label class="checkbox-row">
+        <input type="checkbox" id="exclude-bo-postcode" />
+        Exclude box office (postcode map only)
+      </label>
+      <div id="postcode-map" class="chart-container map-container"></div>
+    </section>
+
+    <hr />
+    <details class="expander">
+      <summary>How this dashboard works</summary>
+      <div class="tutorial">
+        <h3>1. What runs where</h3>
+        <p>This page is a fully static site — HTML, CSS and JavaScript, hosted on GitHub Pages. There is no server component: when you choose a CSV file, it is read and parsed entirely inside this browser tab (via the File API + PapaParse) and never transmitted anywhere. Charts are drawn with Plotly.js.</p>
+        <h3>2. Core flow</h3>
+        <ol>
+          <li>Load CSV (file picker or the bundled sample file).</li>
+          <li>Detect key columns (date/time/source/tickets/ticket type/postcode/session).</li>
+          <li>Prepare standardized records (<code>js/analytics.js</code>: <code>prepareData</code>).</li>
+          <li>Build chart-specific aggregated series (<code>getSourceSeries</code>, <code>getTicketTypeSeries</code>, <code>getPostcodeSeries</code>, <code>getSessionTicketTypeBreakdown</code>).</li>
+          <li>Render charts and tables, re-running on any filter/control change (<code>js/app.js</code>).</li>
+        </ol>
+        <h3>3. Notes on "Other" responses</h3>
+        <p>Responses starting with "Other" are shown as their own series where possible. Anything containing "BO", "bo", "season ticket(s)" or "life member(s)" is grouped into a single "Box Office" series; everything else starting with "Other" is grouped into a generic "Other" series. The detailed breakdown (each individual "Other: ..." value) is still available in the Other Responses table above.</p>
+      </div>
+    </details>
+  </main>
+</div>
+
+<script src="vendor/plotly-2.35.2.min.js"></script>
+<script src="vendor/papaparse-5.4.1.min.js"></script>
+<script src="js/analytics.js"></script>
+<script src="js/categories.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
