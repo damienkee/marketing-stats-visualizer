@@ -1,6 +1,7 @@
 # Marketing Stats Visualizer
 
 A local web app for analyzing and visualizing show marketing statistics from CSV files.
+https://damienkee.github.io/marketing-stats-visualizer/
 
 ## What this app does
 
