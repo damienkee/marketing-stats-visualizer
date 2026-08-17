@@ -179,19 +179,24 @@ function renderAll() {
   const chartType = document.querySelector('input[name="chart-type"]:checked').value;
   const sessionCapacity = parseInt(document.getElementById('session-capacity').value, 10) || 438;
   const sessionCount = parseInt(document.getElementById('session-count').value, 10) || 8;
+  const excludeFinalDress = document.getElementById('exclude-final-dress').checked;
 
   const yTitle = modeLabel === 'tickets' ? 'Tickets' : 'Bookings';
 
+  const prepared = excludeFinalDress
+    ? state.prepared.filter((r) => Categories.canonicalTicketCategory(r.ticketType) !== 'final dress rehearsal')
+    : state.prepared;
+
   // --- Season capacity stats ---
   const totalSeatsAvailable = sessionCapacity * sessionCount;
-  const totalTicketsSold = Analytics.getTotalTicketsSold(state.prepared);
+  const totalTicketsSold = Analytics.getTotalTicketsSold(prepared);
   const percentSold = totalSeatsAvailable > 0 ? (totalTicketsSold / totalSeatsAvailable) * 100 : 0;
   document.getElementById('stat-total-seats').textContent = totalSeatsAvailable.toLocaleString();
   document.getElementById('stat-total-sold').textContent = totalTicketsSold.toLocaleString();
   document.getElementById('stat-percent-sold').textContent = `${percentSold.toFixed(1)}%`;
 
   // --- Marketing Response Trend ---
-  const sourceSeries = Analytics.getSourceSeries(state.prepared, { mode: modeLabel, timeGroup });
+  const sourceSeries = Analytics.getSourceSeries(prepared, { mode: modeLabel, timeGroup });
 
   const nonOtherSeries = sourceSeries.filter((r) => !r.source.toLowerCase().startsWith('other'));
   const otherSeries = sourceSeries.filter((r) => r.source.toLowerCase().startsWith('other'));
@@ -207,13 +212,13 @@ function renderAll() {
   Charts.renderOtherTable('other-table', otherSeries, yTitle);
 
   // --- Ticket Type Breakdown ---
-  const ticketSeries = Analytics.getTicketTypeSeries(state.prepared, timeGroup);
+  const ticketSeries = Analytics.getTicketTypeSeries(prepared, timeGroup);
   const allTicketTypes = Array.from(new Set(ticketSeries.map((r) => r.ticketType))).sort((a, b) => a.localeCompare(b));
   renderCheckboxGrid('ticket-type-filter', allTicketTypes, state.ticketTypeSelections, new Set(['final dress rehearsal']), renderAll);
   const selectedTicketTypes = new Set(selectedOptions(state.ticketTypeSelections));
   const filteredTicket = ticketSeries.filter((r) => selectedTicketTypes.has(r.ticketType));
 
-  const allPieCategories = [...state.prepared.map((r) => r.ticketType), 'House seats', 'Unsold'];
+  const allPieCategories = [...prepared.map((r) => r.ticketType), 'House seats', 'Unsold'];
   const pieColorMap = Categories.buildPieColorMap(allPieCategories);
   const legendCategories = Categories.getOrderedLegendCategories(allPieCategories);
 
@@ -225,15 +230,15 @@ function renderAll() {
   Charts.renderTicketPie('ticket-pie', ticketBreakdown, pieColorMap);
 
   // --- Session Sales ---
-  const sessionSeries = Analytics.getSessionTicketTypeBreakdown(state.prepared);
+  const sessionSeries = Analytics.getSessionTicketTypeBreakdown(prepared);
   const summaryRows = Charts.renderSessionPies('session-pies', sessionSeries, pieColorMap, legendCategories, sessionCapacity);
   Charts.renderSessionSummaryTable('session-summary', summaryRows);
 
   // --- Preview table ---
-  Charts.renderPreviewTable('preview-table', state.prepared);
+  Charts.renderPreviewTable('preview-table', prepared);
 
   // --- Postcode map ---
-  const postcodeRows = excludeBoPostcode ? state.prepared.filter((r) => !containsBO(r.source)) : state.prepared;
+  const postcodeRows = excludeBoPostcode ? prepared.filter((r) => !containsBO(r.source)) : prepared;
   const postcodeSeries = Analytics.getPostcodeSeries(postcodeRows);
   const mapRows = [];
   if (state.postcodeLookup) {
@@ -255,7 +260,7 @@ function wireControls() {
     reader.readAsText(file);
   });
 
-  ['group-by-bookings', 'exclude-bo-postcode'].forEach((id) => {
+  ['group-by-bookings', 'exclude-bo-postcode', 'exclude-final-dress'].forEach((id) => {
     document.getElementById(id).addEventListener('change', renderAll);
   });
   document.getElementById('map-style-select').addEventListener('change', renderAll);
