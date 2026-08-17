@@ -21,8 +21,10 @@ Opening `docs/index.html` directly via `file://` will hit browser restrictions o
 
 ```bash
 cd docs
-python -m http.server 8000
+py -m http.server 8000
 ```
+
+(Use `py` rather than `python` on Windows if `python` isn't on your PATH — it hits the Microsoft Store alias stub instead of running.)
 
 then open `http://localhost:8000`.
 

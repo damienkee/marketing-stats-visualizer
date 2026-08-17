@@ -173,17 +173,25 @@ function renderAll() {
 
   const groupByBookings = document.getElementById('group-by-bookings').checked;
   const modeLabel = groupByBookings ? 'bookings' : 'tickets';
-  const timeGroup = document.getElementById('time-group-select').value;
+  const timeGroup = 'D';
   const mapStyle = document.getElementById('map-style-select').value;
-  const excludeBoMarketing = document.getElementById('exclude-bo-marketing').checked;
   const excludeBoPostcode = document.getElementById('exclude-bo-postcode').checked;
   const chartType = document.querySelector('input[name="chart-type"]:checked').value;
+  const sessionCapacity = parseInt(document.getElementById('session-capacity').value, 10) || 438;
+  const sessionCount = parseInt(document.getElementById('session-count').value, 10) || 8;
 
   const yTitle = modeLabel === 'tickets' ? 'Tickets' : 'Bookings';
 
+  // --- Season capacity stats ---
+  const totalSeatsAvailable = sessionCapacity * sessionCount;
+  const totalTicketsSold = Analytics.getTotalTicketsSold(state.prepared);
+  const percentSold = totalSeatsAvailable > 0 ? (totalTicketsSold / totalSeatsAvailable) * 100 : 0;
+  document.getElementById('stat-total-seats').textContent = totalSeatsAvailable.toLocaleString();
+  document.getElementById('stat-total-sold').textContent = totalTicketsSold.toLocaleString();
+  document.getElementById('stat-percent-sold').textContent = `${percentSold.toFixed(1)}%`;
+
   // --- Marketing Response Trend ---
-  const marketingRows = excludeBoMarketing ? state.prepared.filter((r) => !containsBO(r.source)) : state.prepared;
-  const sourceSeries = Analytics.getSourceSeries(marketingRows, { mode: modeLabel, timeGroup });
+  const sourceSeries = Analytics.getSourceSeries(state.prepared, { mode: modeLabel, timeGroup });
 
   const nonOtherSeries = sourceSeries.filter((r) => !r.source.toLowerCase().startsWith('other'));
   const otherSeries = sourceSeries.filter((r) => r.source.toLowerCase().startsWith('other'));
@@ -218,7 +226,7 @@ function renderAll() {
 
   // --- Session Sales ---
   const sessionSeries = Analytics.getSessionTicketTypeBreakdown(state.prepared);
-  const summaryRows = Charts.renderSessionPies('session-pies', sessionSeries, pieColorMap, legendCategories);
+  const summaryRows = Charts.renderSessionPies('session-pies', sessionSeries, pieColorMap, legendCategories, sessionCapacity);
   Charts.renderSessionSummaryTable('session-summary', summaryRows);
 
   // --- Preview table ---
@@ -247,12 +255,12 @@ function wireControls() {
     reader.readAsText(file);
   });
 
-  ['group-by-bookings', 'exclude-bo-marketing', 'exclude-bo-postcode'].forEach((id) => {
+  ['group-by-bookings', 'exclude-bo-postcode'].forEach((id) => {
     document.getElementById(id).addEventListener('change', renderAll);
   });
-  ['time-group-select', 'map-style-select'].forEach((id) => {
-    document.getElementById(id).addEventListener('change', renderAll);
-  });
+  document.getElementById('map-style-select').addEventListener('change', renderAll);
+  document.getElementById('session-capacity').addEventListener('input', renderAll);
+  document.getElementById('session-count').addEventListener('input', renderAll);
   document.querySelectorAll('input[name="chart-type"]').forEach((el) => {
     el.addEventListener('change', renderAll);
   });

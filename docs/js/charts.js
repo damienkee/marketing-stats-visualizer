@@ -125,7 +125,7 @@ function renderTicketPie(divId, ticketBreakdown, colorMap) {
   const labels = ordered.filter((t) => byType.has(t));
   const values = labels.map((t) => byType.get(t));
   const total = values.reduce((a, b) => a + b, 0);
-  const text = labels.map((label, i) => (total > 0 && values[i] / total > 0.10 ? `${label}: ${Math.round((values[i] / total) * 100)}%` : ''));
+  const text = labels.map((label, i) => (total > 0 && values[i] / total > 0.05 ? `${label}: ${Math.round((values[i] / total) * 100)}%` : ''));
 
   const trace = {
     type: 'pie',
@@ -142,15 +142,18 @@ function renderTicketPie(divId, ticketBreakdown, colorMap) {
 
   const layout = {
     title: { text: 'Ticket type share' },
-    legend: { orientation: 'h', x: 0.5, xanchor: 'center', y: 1.12, yanchor: 'bottom', title: { text: 'Ticket Type' } },
-    margin: { t: 120, b: 10, l: 10, r: 10 },
-    height: 650,
+    legend: {
+      orientation: 'h', x: 0.5, xanchor: 'center', y: 1.15, yanchor: 'bottom',
+      title: { text: 'Ticket Type' },
+      entrywidthmode: 'fraction', entrywidth: 0.45,
+    },
+    margin: { t: 170, b: 10, l: 10, r: 10 },
+    height: 680,
   };
 
   Plotly.newPlot(el, [trace], layout, { responsive: true, displaylogo: false });
 }
 
-const SESSION_CAPACITY = 438;
 const HOUSE_SEATS = 22;
 
 function sessionLabel(date) {
@@ -163,7 +166,8 @@ function sessionLabel(date) {
   return `${days[date.getDay()]} ${String(date.getDate()).padStart(2, '0')} ${months[date.getMonth()]} ${date.getFullYear()}, ${h12}:${mm} ${ampm}`;
 }
 
-function renderSessionPies(divId, sessionSeries, colorMap, legendCategories) {
+function renderSessionPies(divId, sessionSeries, colorMap, legendCategories, sessionCapacity) {
+  const capacity = sessionCapacity || 438;
   const el = document.getElementById(divId);
   if (!sessionSeries.length) {
     Plotly.purge(el);
@@ -194,7 +198,7 @@ function renderSessionPies(divId, sessionSeries, colorMap, legendCategories) {
   sessions.forEach((session, idx) => {
     const soldCount = session.rows.reduce((sum, r) => sum + r.value, 0);
     const usedSeats = soldCount + HOUSE_SEATS;
-    const unsoldCount = Math.max(SESSION_CAPACITY - usedSeats, 0);
+    const unsoldCount = Math.max(capacity - usedSeats, 0);
 
     const chartRows = session.rows.filter((r) => r.value > 0).map((r) => ({ ticketType: r.ticketType, value: r.value }));
     chartRows.push({ ticketType: 'House seats', value: HOUSE_SEATS });
@@ -205,7 +209,7 @@ function renderSessionPies(divId, sessionSeries, colorMap, legendCategories) {
     const labels = ordered;
     const values = labels.map((l) => byType.get(l));
     const total = values.reduce((a, b) => a + b, 0);
-    const text = labels.map((l, i) => (total > 0 && values[i] / total > 0.10 ? `${l}: ${Math.round((values[i] / total) * 100)}%` : ''));
+    const text = labels.map((l, i) => (total > 0 && values[i] / total > 0.05 ? `${l}: ${Math.round((values[i] / total) * 100)}%` : ''));
 
     const row = Math.floor(idx / cols);
     const col = idx % cols;
@@ -213,7 +217,7 @@ function renderSessionPies(divId, sessionSeries, colorMap, legendCategories) {
     const yEnd = 1 - row * (rowHeight + rowGap);
     const yStart = yEnd - rowHeight;
 
-    const allocatedPct = Math.round((usedSeats / SESSION_CAPACITY) * 100);
+    const allocatedPct = Math.round((usedSeats / capacity) * 100);
 
     traces.push({
       type: 'pie',
@@ -240,7 +244,7 @@ function renderSessionPies(divId, sessionSeries, colorMap, legendCategories) {
       font: { size: 13 },
     });
 
-    summaryRows.push({ session: sessionLabel(session.sessionDatetime), sold: soldCount, houseSeats: HOUSE_SEATS, capacity: SESSION_CAPACITY });
+    summaryRows.push({ session: sessionLabel(session.sessionDatetime), sold: soldCount, houseSeats: HOUSE_SEATS, capacity });
   });
 
   // Shared legend via invisible dummy bar traces (mirrors the Python legendonly trick).
@@ -258,9 +262,13 @@ function renderSessionPies(divId, sessionSeries, colorMap, legendCategories) {
   const layout = {
     title: { text: 'Session seat mix' },
     annotations,
-    legend: { orientation: 'h', x: 0.5, xanchor: 'center', y: 1.08, yanchor: 'bottom', title: { text: 'Seat Category' } },
-    margin: { t: 100, b: 10, l: 10, r: 10 },
-    height: Math.max(560, rows * 480),
+    legend: {
+      orientation: 'h', x: 0.5, xanchor: 'center', y: 1.1, yanchor: 'bottom',
+      title: { text: 'Seat Category' },
+      entrywidthmode: 'fraction', entrywidth: 0.45,
+    },
+    margin: { t: 150, b: 10, l: 10, r: 10 },
+    height: Math.max(610, rows * 480 + 50),
     xaxis: { visible: false }, yaxis: { visible: false },
   };
 

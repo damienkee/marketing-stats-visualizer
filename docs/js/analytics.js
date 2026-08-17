@@ -113,10 +113,13 @@ function prepareData(rows, columns) {
   }
 
   const prepared = [];
+  let rowId = 0;
 
   for (const row of rows) {
     const bookingDatetime = parseDateTime(row[columns.dateCol], row[columns.timeCol]);
     if (!bookingDatetime) continue;
+    const currentRowId = rowId;
+    rowId += 1;
 
     let sessionDatetime = null;
     if (columns.sessionDateCol && columns.sessionTimeCol) {
@@ -142,6 +145,7 @@ function prepareData(rows, columns) {
 
     for (const source of sources) {
       prepared.push({
+        rowId: currentRowId,
         bookingDatetime,
         sessionDatetime,
         source,
@@ -222,6 +226,23 @@ function getTicketTypeSeries(prepared, timeGroup) {
   return Array.from(buckets.values()).sort((a, b) => a.period - b.period);
 }
 
+/**
+ * Total tickets actually sold across the whole dataset. Counts each raw
+ * CSV row once (by rowId) rather than summing over `prepared`, which
+ * deliberately double-counts multi-source bookings (e.g. "Facebook;Email
+ * list") once per exploded source row for the marketing-response chart.
+ */
+function getTotalTicketsSold(prepared) {
+  const seen = new Set();
+  let total = 0;
+  for (const r of prepared) {
+    if (seen.has(r.rowId)) continue;
+    seen.add(r.rowId);
+    total += r.ticketCount;
+  }
+  return total;
+}
+
 function getPostcodeSeries(prepared) {
   const buckets = new Map();
   for (const r of prepared) {
@@ -260,4 +281,5 @@ window.Analytics = {
   getTicketTypeSeries,
   getPostcodeSeries,
   getSessionTicketTypeBreakdown,
+  getTotalTicketsSold,
 };

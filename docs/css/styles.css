@@ -62,13 +62,37 @@ body {
   margin: 10px 0 4px;
 }
 
-select, input[type="file"] {
+select, input[type="file"], input[type="number"] {
   width: 100%;
   padding: 6px 8px;
   font-size: 0.85rem;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: white;
+}
+
+.stats-block {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.82rem;
+  padding: 4px 0;
+}
+
+.stat-row span {
+  color: var(--muted);
+}
+
+.stat-row strong {
+  font-size: 0.95rem;
+  white-space: nowrap;
 }
 
 .checkbox-row {

@@ -24,13 +24,19 @@
         <input type="checkbox" id="group-by-bookings" />
         Group by bookings instead of tickets
       </label>
-      <label class="field-label" for="time-group-select">Group time by</label>
-      <select id="time-group-select">
-        <option value="h">Hourly</option>
-        <option value="D" selected>Daily</option>
-        <option value="W">Weekly</option>
-        <option value="M">Monthly</option>
-      </select>
+    </section>
+
+    <section class="control-group">
+      <h2>Season Capacity</h2>
+      <label class="field-label" for="session-capacity">Total capacity per session</label>
+      <input type="number" id="session-capacity" value="438" min="1" step="1" />
+      <label class="field-label" for="session-count">Number of sessions</label>
+      <input type="number" id="session-count" value="8" min="1" step="1" />
+      <div class="stats-block">
+        <div class="stat-row"><span>Total seats available</span><strong id="stat-total-seats">—</strong></div>
+        <div class="stat-row"><span>Total tickets sold</span><strong id="stat-total-sold">—</strong></div>
+        <div class="stat-row"><span>% of season sold</span><strong id="stat-percent-sold">—</strong></div>
+      </div>
     </section>
 
     <section class="control-group">
@@ -50,10 +56,6 @@
 
     <section class="chart-section">
       <h2>Marketing Response Trend</h2>
-      <label class="checkbox-row">
-        <input type="checkbox" id="exclude-bo-marketing" />
-        Exclude box office (marketing response only)
-      </label>
       <div id="trend-chart" class="chart-container"></div>
       <div class="filter-block">
         <p class="field-label">Tick responses to include</p>
